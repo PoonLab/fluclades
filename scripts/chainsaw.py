@@ -15,6 +15,7 @@ import bisect
 import sys
 from io import StringIO
 
+sys.setrecursionlimit = 1e9
 
 parser = argparse.ArgumentParser(
     description="Partition tree by cutting on internal branches with length "
@@ -109,6 +110,7 @@ def cuttree(phy, clade):
         phy.root_with_outgroup(grandpar)
         subtree2 = Tree.from_clade(phy.root)
     
+    subtree2.root.branch_length = 0    
     return subtree1, subtree2
 
 
