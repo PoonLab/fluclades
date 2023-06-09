@@ -23,15 +23,16 @@ parser = argparse.ArgumentParser(
 parser.add_argument("infile", type=argparse.FileType('r'), 
                     help="<input> Path to Newick file to process.")
 parser.add_argument("outfile", type=argparse.FileType('w'), nargs="?", default=sys.stdout,
-                    help="<output> File to write output CSV, defaults to stdout.")
+                    help="<output> File to write output, defaults to stdout.")
 parser.add_argument("--cutoff", type=float,
                     help="<input> Maximum internal branch length. "
                     "If none given, display summary of lengths.")
 parser.add_argument("--nbin", type=int, default=20, 
                     help="<option> number of bins for branch length summary.")
-parser.add_argument("--full", action='store_true', 
-                    help="<option> Write out all tip labels per subtree to CSV. "
-                    "Otherwise only a summary of subtree sizes will be written.")
+parser.add_argument("-f", "--format", choices=["summary", "labels", "trees"], default="summary",
+                    help="<option> Format to write output. Defaults to 'summary'. "
+                    "'labels' writes all tip labels for each subtree index. "
+                    "'trees' writes a set of Newick tree strings.")
 args = parser.parse_args()
 
 phy = Phylo.read(args.infile, 'newick')
@@ -99,7 +100,9 @@ def cuttree(phy, clade):
             sys.stderr.write("cuttree: parent had only one child\n")
             sys.exit()
         elif nchild == 1:
+            # parent is stem of one subtree, drop it
             subtree2 = Tree(parent.clades[0])
+            del parent
         else:
             subtree2 = Tree(parent)
     else:
@@ -151,16 +154,19 @@ while cutting:
     subtrees = newtrees
 
 # write output
-if args.full:
+if args.mode == "labels":
     args.outfile.write("subtree,tip.label\n")
     for idx, subtree in enumerate(subtrees):
         for tip in subtree.get_terminals():
             args.outfile.write(f"{idx},{tip.name}\n")
-else:
+elif args.mode == "summary":
     args.outfile.write("subtree,ntips,tip1\n")
     for idx, subtree in enumerate(subtrees):
         tips = subtree.get_terminals()
         args.outfile.write(f"{idx},{len(tips)},{tips[0].name}\n")
+else:
+    for subtree in subtrees:
+        Phylo.write(subtree, args.outfile, "newick")
 
 if args.outfile is not sys.stdout:
     args.outfile.close()
