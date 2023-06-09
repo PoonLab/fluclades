@@ -15,7 +15,6 @@ import bisect
 import sys
 from io import StringIO
 
-sys.setrecursionlimit = 1e9
 
 parser = argparse.ArgumentParser(
     description="Partition tree by cutting on internal branches with length "
@@ -23,13 +22,16 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("infile", type=argparse.FileType('r'), 
                     help="<input> Path to Newick file to process.")
-parser.add_argument("outfile", type=argparse.FileType('w'), default=sys.stdout,
+parser.add_argument("outfile", type=argparse.FileType('w'), nargs="?", default=sys.stdout,
                     help="<output> File to write output CSV, defaults to stdout.")
 parser.add_argument("--cutoff", type=float,
                     help="<input> Maximum internal branch length. "
                     "If none given, display summary of lengths.")
 parser.add_argument("--nbin", type=int, default=20, 
                     help="<option> number of bins for branch length summary.")
+parser.add_argument("--full", action='store_true', 
+                    help="<option> Write out all tip labels per subtree to CSV. "
+                    "Otherwise only a summary of subtree sizes will be written.")
 args = parser.parse_args()
 
 phy = Phylo.read(args.infile, 'newick')
@@ -86,7 +88,7 @@ def cuttree(phy, clade):
         return phy
     
     clade.branch_length = 0
-    subtree1 = Tree.from_clade(clade)
+    subtree1 = Tree(clade)
     parent.clades.remove(clade)
     nchild = len(parent.clades)
     
@@ -97,9 +99,9 @@ def cuttree(phy, clade):
             sys.stderr.write("cuttree: parent had only one child\n")
             sys.exit()
         elif nchild == 1:
-            subtree2 = Tree.from_clade(parent.clades[0])
+            subtree2 = Tree(parent.clades[0])
         else:
-            subtree2 = Tree.from_clade(parent)
+            subtree2 = Tree(parent)
     else:
         if nchild < 2:
             for child in parent.clades:
@@ -108,7 +110,7 @@ def cuttree(phy, clade):
             grandpar.clades.remove(parent)
             del parent
         phy.root_with_outgroup(grandpar)
-        subtree2 = Tree.from_clade(phy.root)
+        subtree2 = Tree(phy.root)
     
     subtree2.root.branch_length = 0    
     return subtree1, subtree2
@@ -149,9 +151,16 @@ while cutting:
     subtrees = newtrees
 
 # write output
-args.outfile.write("subtree,tip.label\n")
-for idx, subtree in enumerate(subtrees):
-    for tip in subtree.get_terminals():
-        args.outfile.write(f"{idx},{tip.name}\n")
+if args.full:
+    args.outfile.write("subtree,tip.label\n")
+    for idx, subtree in enumerate(subtrees):
+        for tip in subtree.get_terminals():
+            args.outfile.write(f"{idx},{tip.name}\n")
+else:
+    args.outfile.write("subtree,ntips,tip1\n")
+    for idx, subtree in enumerate(subtrees):
+        tips = subtree.get_terminals()
+        args.outfile.write(f"{idx},{len(tips)},{tips[0].name}\n")
 
-args.outfile.close()
+if args.outfile is not sys.stdout:
+    args.outfile.close()
