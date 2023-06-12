@@ -1,7 +1,6 @@
 import argparse
 from Bio import SeqIO
 import csv
-import re
 
 parser = argparse.ArgumentParser(
     description="Replace labels in CDS FASTA with metadata from CSV"
@@ -18,7 +17,8 @@ keys = ['accn', 'strain', 'serotype', 'host', 'country', 'coldate']
 metadata = {}
 reader = csv.DictReader(args.csvfile)
 for row in reader:
-    metadata.update({row['accn']: row})
+    accn = row['accn'].split('.')[0]
+    metadata.update({accn: row})
 
 
 records = SeqIO.parse(args.infile, "fasta")

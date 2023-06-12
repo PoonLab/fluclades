@@ -23,7 +23,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("infile", type=argparse.FileType('r'), 
                     help="<input> Path to Newick file to process.")
 parser.add_argument("outfile", type=argparse.FileType('w'), nargs="?", default=sys.stdout,
-                    help="<output> File to write output, defaults to stdout.")
+                    help="<output, optional> File to write output, defaults to stdout.")
 parser.add_argument("--cutoff", type=float,
                     help="<input> Maximum internal branch length. "
                     "If none given, display summary of lengths.")
@@ -90,6 +90,8 @@ def cuttree(phy, clade):
     
     clade.branch_length = 0
     subtree1 = Tree(clade)
+    unroot(subtree1)
+
     parent.clades.remove(clade)
     nchild = len(parent.clades)
     
@@ -115,7 +117,8 @@ def cuttree(phy, clade):
         phy.root_with_outgroup(grandpar)
         subtree2 = Tree(phy.root)
     
-    subtree2.root.branch_length = 0    
+    subtree2.root.branch_length = 0
+    unroot(subtree2)
     return subtree1, subtree2
 
 
@@ -154,12 +157,12 @@ while cutting:
     subtrees = newtrees
 
 # write output
-if args.mode == "labels":
+if args.format == "labels":
     args.outfile.write("subtree,tip.label\n")
     for idx, subtree in enumerate(subtrees):
         for tip in subtree.get_terminals():
             args.outfile.write(f"{idx},{tip.name}\n")
-elif args.mode == "summary":
+elif args.format == "summary":
     args.outfile.write("subtree,ntips,tip1\n")
     for idx, subtree in enumerate(subtrees):
         tips = subtree.get_terminals()

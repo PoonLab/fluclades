@@ -2,6 +2,10 @@ import csv
 import time
 import argparse
 from Bio import Phylo, Entrez, SeqIO
+import sys
+import re
+
+pat = re.compile("[A-Z]+_*[0-9]+\.[1-9]")
 
 parser = argparse.ArgumentParser(
     description="Retrieve metadata from Genbank based on accession numbers "
@@ -10,7 +14,7 @@ parser = argparse.ArgumentParser(
                 "position.")
 
 parser.add_argument("infile", type=argparse.FileType('r'),
-                    help="<input NWK> File containing Newick tree string")
+                    help="<input> File in Newick or FASTA format")
 parser.add_argument("outfile", type=argparse.FileType('w'),
                     help="<output CSV> File to write metadata.")
 parser.add_argument("--email", type=str, default="apoon42@uwo.ca",
@@ -23,24 +27,43 @@ args = parser.parse_args()
 # let Genbank know who we are
 Entrez.email = args.email
 
-phy = Phylo.read(args.infile, 'newick')
-tips = phy.get_terminals()
-print(f"Processing {len(tips)} tips in tree...")
+ifn = args.infile.name
+if ifn.endswith(".nwk"):
+    phy = Phylo.read(args.infile, 'newick')
+    labels = [tip.name for tip in phy.get_terminals()]
+elif ifn.endswith(".fa") or ifn.endswith(".fasta"):
+    records = SeqIO.parse(args.infile, 'fasta')
+    labels = [rec.description for rec in records]
+else:
+    print("Error: input file must have .nwk/.fa/.fasta extension")
+    sys.exit()
+
+print(f"Processing {len(labels)} labels from input...")
 
 writer = csv.writer(args.outfile)
 writer.writerow(['accn', 'strain', 'serotype', 'host', 'country', 'coldate'])
 
-for i in range(0, len(tips), args.batchsize):
+for i in range(52000, len(labels), args.batchsize):
     print(i)
-    batch = [tip.name.split("_")[0] for tip in tips[i:(i+args.batchsize)]]
+
+    batch = []
+    for j in range(i, min(i+args.batchsize, len(labels))):
+        matches = pat.findall(labels[j])
+        if len(matches) == 0:
+            sys.stderr.write(f"WARNING: Failed to parse {labels[j]}, skipping\n")
+            continue
+        batch.append(matches[0])
+    
+    #batch = [lab.split("_")[0] for lab in labels[i:(i+args.batchsize)]]
     handle = Entrez.efetch(db='nuccore', id=batch, rettype='gb', 
                            retmode='text', retmax=args.batchsize)
+    
     records = SeqIO.parse(handle, 'gb')
     for record in records:
         source = list(filter(lambda f: f.type=='source', record.features))
         quals = source[0].qualifiers
         writer.writerow([
-            record.name,  # LOCUS
+            record.id,  # record.name is LOCUS, not always accession
             quals.get('strain', [''])[0],
             quals.get('serotype', [''])[0],
             quals.get('host', [''])[0],
