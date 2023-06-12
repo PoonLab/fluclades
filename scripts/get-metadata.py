@@ -43,7 +43,7 @@ print(f"Processing {len(labels)} labels from input...")
 writer = csv.writer(args.outfile)
 writer.writerow(['accn', 'strain', 'serotype', 'host', 'country', 'coldate'])
 
-for i in range(52000, len(labels), args.batchsize):
+for i in range(0, len(labels), args.batchsize):
     print(i)
 
     batch = []
