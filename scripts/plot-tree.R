@@ -117,6 +117,22 @@ toprint <- L$nodes[miss, c('accn', 'strain', 'hsero')]
 toprint$predicted <- predicted
 print(xtable(toprint), include.rownames=FALSE)
 
+########################
+
+neura <- read.tree("data/gb-relabeled-na.ft2-mle.mid.nwk")
+neura <- ladderize(neura)
+nl <- tree.layout(neura)
+
+res <- 150
+png("results/neura.tree.png", width=6*res, height=10*res)
+plot(nl, label='n', lwd=1, mar=c(0,0,0,0))
+add.scalebar(nl, len=0.1)
+dev.off()
+
+for (i in 1:11) {
+  
+}
+
 ####################################
 # unrooted layout
 

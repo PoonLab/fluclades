@@ -31,7 +31,7 @@ ifn = args.infile.name
 if ifn.endswith(".nwk"):
     phy = Phylo.read(args.infile, 'newick')
     labels = [tip.name for tip in phy.get_terminals()]
-elif ifn.endswith(".fa") or ifn.endswith(".fasta"):
+elif ifn.endswith(".mafft") or ifn.endswith(".fa") or ifn.endswith(".fasta"):
     records = SeqIO.parse(args.infile, 'fasta')
     labels = [rec.description for rec in records]
 else:

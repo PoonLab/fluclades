@@ -16,42 +16,6 @@ import sys
 from io import StringIO
 
 
-parser = argparse.ArgumentParser(
-    description="Partition tree by cutting on internal branches with length "
-    "exceeding threshold."
-)
-parser.add_argument("infile", type=argparse.FileType('r'), 
-                    help="<input> Path to Newick file to process.")
-parser.add_argument("outfile", type=argparse.FileType('w'), nargs="?", default=sys.stdout,
-                    help="<output, optional> File to write output, defaults to stdout.")
-parser.add_argument("--cutoff", type=float,
-                    help="<input> Maximum internal branch length. "
-                    "If none given, display summary of lengths.")
-parser.add_argument("--nbin", type=int, default=20, 
-                    help="<option> number of bins for branch length summary.")
-parser.add_argument("-f", "--format", choices=["summary", "labels", "trees"], default="summary",
-                    help="<option> Format to write output. Defaults to 'summary'. "
-                    "'labels' writes all tip labels for each subtree index. "
-                    "'trees' writes a set of Newick tree strings.")
-args = parser.parse_args()
-
-phy = Phylo.read(args.infile, 'newick')
-
-if args.cutoff is None:
-    bl = [node.branch_length for node in phy.get_nonterminals() if node is not phy.root]
-    bl.sort()  # ascending order
-    blmax = bl[-1]
-    blstep = blmax/args.nbin
-    cutval = 0
-    left = 0
-    for i in range(args.nbin):
-        cutval += blstep
-        right = bisect.bisect_left(bl, cutval)
-        print(cutval, right-left)
-        left = right
-    sys.exit()
-
-
 def get_parents(phy):
     # Clades do not store references to parents
     parents = {}
@@ -132,29 +96,70 @@ def longest(phy):
     intermed.sort(reverse=True)
     return nodes[intermed[0][1]]
 
-"""
-s = StringIO("(((t1:0.06559279552,t2:0.06559279552):0.7043641405,(t6:0.5937900807,"
-             "((t4:0.0129620425,t10:0.0129620425):0.005046938947,t8:0.01800898145):"
-             "0.5757810992):0.1761668554):1.108476543,((t5:0.1602943302,t9:0.1602943302)"
-             ":0.2262072535,(t7:0.09450417782,t3:0.09450417782):0.2919974059):1.491931895);")
-phy = Phylo.read(s, "newick")
-"""
 
+def chainsaw(phy, cutoff):
+    """ Locate the longest internal branch and cut if its length exceeds threshold """
+    subtrees = [phy]
+    cutting = True  # enter loop
+    while cutting:
+        cutting = False
+        newtrees = []
+        for subtree in subtrees:
+            node = longest(subtree)
+            if node and node.branch_length > cutoff:
+                cutting = True
+                st1, st2 = cuttree(subtree, node)
+                newtrees.extend([st1, st2])
+            else:
+                newtrees.append(subtree)
+        subtrees = newtrees
+    return subtrees
+
+
+# command line interface
+parser = argparse.ArgumentParser(
+    description="Partition tree by cutting on internal branches with length "
+    "exceeding threshold."
+)
+parser.add_argument("infile", type=str, 
+                    help="<input> Path to Newick file to process.")
+parser.add_argument("outfile", type=argparse.FileType('w'), nargs="?", default=sys.stdout,
+                    help="<output, optional> File to write output, defaults to stdout.")
+parser.add_argument("--cutoff", type=float,
+                    help="<input> Maximum internal branch length. "
+                    "If none given, display summary of lengths.")
+parser.add_argument("--auto", action="store_true")
+parser.add_argument("--nbin", type=int, default=20, 
+                    help="<option> number of bins for branch length summary.")
+parser.add_argument("-f", "--format", choices=["summary", "labels", "trees"], default="summary",
+                    help="<option> Format to write output. Defaults to 'summary'. "
+                    "'labels' writes all tip labels for each subtree index. "
+                    "'trees' writes a set of Newick tree strings.")
+args = parser.parse_args()
+
+phy = Phylo.read(args.infile, 'newick')
 unroot(phy)
-subtrees = [phy]
-cutting = True  # enter loop
-while cutting:
-    cutting = False
-    newtrees = []
-    for subtree in subtrees:
-        node = longest(subtree)
-        if node and node.branch_length > args.cutoff:
-            cutting = True
-            st1, st2 = cuttree(subtree, node)
-            newtrees.extend([st1, st2])
-        else:
-            newtrees.append(subtree)
-    subtrees = newtrees
+
+
+if args.cutoff is None:
+    bl = [node.branch_length for node in phy.get_nonterminals() if node is not phy.root]
+    bl.sort()  # ascending order
+    print(bl[-10:])
+    # display histogram
+    blmax = bl[-1]
+    blstep = blmax/args.nbin
+    cutval = 0
+    left = 0
+    for i in range(args.nbin):
+        cutval += blstep
+        right = bisect.bisect_left(bl, cutval)
+        print(cutval, right-left)
+        left = right
+    sys.exit()
+
+
+# main routine
+subtrees = chainsaw(phy, args.cutoff)
 
 # write output
 if args.format == "labels":
