@@ -1,27 +1,85 @@
 setwd("~/git/fluclades")
 
-#chainsaw <- read.csv("results/chainsaw-nsubtrees.csv")
-#chainsaw <- chainsaw[chainsaw$cutoff > 0.06,]
-chainsaw <- read.csv("results/chainsaw-nsubtrees-na.csv")
+rescale <- function(x, from, to) {
+  diff(range(to)) * (x-min(from)) / diff(range(from)) + min(to)
+}
+
+chainsaw <- read.csv("results/chainsaw-nsubtrees.csv")
+chainsaw <- chainsaw[chainsaw$cutoff > 0.06,]
+#chainsaw <- read.csv("results/chainsaw-nsubtrees-na.csv")
 
 # manual runs of chainsaw.py
-pdf("results/chainsaw-na.pdf", width=4.5, height=4.5)
-par(mar=c(5,5,1,1))
+pdf("results/chainsaw-ha.pdf", width=5, height=4)
+par(mar=c(5,5,1,5))
 #x <- c(0.05, 0.06, 0.07, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.25, 0.30)
 #y <- c(  64,   43,   29,   25,   22,   21,   18,   16,   15,   13,   13,   12,    9)
-plot(chainsaw$cutoff, chainsaw$nsubtrees, type='s', 
-     xlab="Maximum internal branch length", 
-     ylab="Number of subtrees", bty='n')
-points(chainsaw$cutoff, chainsaw$nsubtrees, pch=19, cex=0.5)
+plot(chainsaw$cutoff, chainsaw$nsubtrees, type='n', 
+     xlab="Maximum internal branch length", ylab=NA,
+     bty='n', yaxt='n', cex.axis=0.8)
+axis(side=2, col='royalblue3', col.axis='royalblue3', las=2, cex.axis=0.8)
+mtext(side=2, text="Number of subtrees", line=3, col='royalblue3')
+
+# rescale 
+y <- rescale(chainsaw$normalized, chainsaw$normalized, chainsaw$nsubtrees)
+polygon(c(min(chainsaw$cutoff), chainsaw$cutoff, max(chainsaw$cutoff)), 
+        c(0, y, 0), col=rgb(0.9,0,0,0.2), border=NA)
+p <- pretty(chainsaw$normalized)
+axis(side=4, at=rescale(p, chainsaw$normalized, chainsaw$nsubtrees), 
+     label=p, cex.axis=0.7, las=2,
+     col='firebrick3', col.axis='firebrick3')
+u <- par('usr')
+text(x=u[2]+0.06, y=mean(u[3:4]), 
+     label="Normalized mutual information", col='firebrick3', 
+     srt=-90, xpd=NA)
+
+lines(chainsaw$cutoff, chainsaw$nsubtrees, type='s', col='royalblue')
+points(chainsaw$cutoff, chainsaw$nsubtrees, pch=19, cex=0.5, col='royalblue')
+
+abline(h=18, lty=2)
+dev.off()
+
+
+######  NA  ######
+chainsaw <- read.csv("results/chainsaw-nsubtrees-na.csv")
+
+pdf("results/chainsaw-na.pdf", width=5, height=4)
+par(mar=c(5,5,1,5))
+#x <- c(0.05, 0.06, 0.07, 0.08, 0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.22, 0.25, 0.30)
+#y <- c(  64,   43,   29,   25,   22,   21,   18,   16,   15,   13,   13,   12,    9)
+plot(chainsaw$cutoff, chainsaw$nsubtrees, type='n', 
+     xlab="Maximum internal branch length", ylab=NA,
+     bty='n', yaxt='n', cex.axis=0.8)
+axis(side=2, col='royalblue3', col.axis='royalblue3', las=2, cex.axis=0.8)
+mtext(side=2, text="Number of subtrees", line=3, col='royalblue3')
+
+# rescale 
+foo <- chainsaw$normalized[chainsaw$normalized > 0.1]
+y <- rescale(chainsaw$normalized, foo, chainsaw$nsubtrees)
+polygon(c(min(chainsaw$cutoff), chainsaw$cutoff, max(chainsaw$cutoff)), 
+        c(0, y, 0), col=rgb(0.9,0,0,0.2), border=NA)
+p <- pretty(chainsaw$normalized)
+axis(side=4, at=rescale(p, chainsaw$normalized, chainsaw$nsubtrees), 
+     label=p, cex.axis=0.7, las=2,
+     col='firebrick3', col.axis='firebrick3')
+u <- par('usr')
+text(x=u[2]+0.09, y=mean(u[3:4]), 
+     label="Normalized mutual information", col='firebrick3', 
+     srt=-90, xpd=NA)
+
+lines(chainsaw$cutoff, chainsaw$nsubtrees, type='s', col='royalblue')
+points(chainsaw$cutoff, chainsaw$nsubtrees, pch=19, cex=0.5, col='royalblue')
+
 abline(h=11, lty=2)
 dev.off()
 
+
+
 # examine distribution of serotype labels among subtrees
 #labels <- read.csv("results/chainsaw-0.15.full.csv")
-#labels <- read.csv("results/chainsaw-0.18.labels.csv")
+labels <- read.csv("results/chainsaw-HA-0.2.csv")
 labels <- read.csv("results/chainsaw-NA-0.4.labels.csv")
-#pat <- ".+_(H[0-9]+)N*[0-9]*_.+"
-pat <- ".+_H[0-9]+(N[0-9]+)_.+"
+pat <- ".+_(H[0-9]+)N*[0-9]*_.+" # HA
+pat <- ".+_H[0-9]+(N[0-9]+)_.+"  # NA
 labels$serotype <- gsub(pat, "\\1", labels$tip.label)
 labels$serotype[!grepl(pat, labels$tip.label)] <- NA
 
@@ -64,6 +122,27 @@ axis(side=2, at=1:nrow(x)-0.5, label=io-1, las=2, cex.axis=0.8)
 axis(side=4, at=1:nrow(x)-0.5, label=apply(tab[io,], 1, sum),
      cex.axis=0.6, las=2, lwd=0, line=-1)
 dev.off()
+
+
+# calculate mutual information
+mutinfo <- function(labels) {
+  n <- sum(!is.na(labels$serotype))
+  pu <- table(labels$serotype) / n  # serotypes
+  pv <- table(labels$subtree[!is.na(labels$serotype)]) / n  # subtrees
+  mi <- 0
+  for (sero in names(pu)) {
+    for (st in names(pv)) {
+      puv <- nrow(labels[labels$subtree==st & 
+                           !is.na(labels$serotype) & 
+                           labels$serotype==sero,]) / n
+      if (puv == 0) next
+      mi <- mi + puv * log(puv / (pu[sero] * pv[st]))
+    }
+  }
+  return(mi)
+}
+
+mutinfo(labels)
 
 
 # examine NA subtree 6

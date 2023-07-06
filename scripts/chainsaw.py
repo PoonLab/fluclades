@@ -13,7 +13,8 @@ from Bio.Phylo.BaseTree import Tree
 import argparse
 import bisect
 import sys
-from io import StringIO
+import re
+from math import log
 
 
 def get_parents(phy):
@@ -168,7 +169,7 @@ if args.format == "labels":
         for tip in subtree.get_terminals():
             args.outfile.write(f"{idx},{tip.name}\n")
 elif args.format == "summary":
-    args.outfile.write("subtree,ntips,tip1\n")
+    args.outfile.write("subtree,ntips,tip.label\n")
     for idx, subtree in enumerate(subtrees):
         tips = subtree.get_terminals()
         args.outfile.write(f"{idx},{len(tips)},{tips[0].name}\n")
@@ -178,3 +179,47 @@ else:
 
 if args.outfile is not sys.stdout:
     args.outfile.close()
+
+
+# entabulate serotype labels per subtree
+tab = []
+#pat = re.compile(".+_(H[0-9]+)N*[0-9]*_.+")
+pat = re.compile(".+_H[0-9]+(N[0-9]+)_.+")
+total = 0
+stcount = {}
+serocount = {}
+for idx, subtree in enumerate(subtrees):
+    tips = [tip.name for tip in subtree.get_terminals()]
+    labels = {}
+    for tip in tips:
+        matches = pat.findall(tip)
+        if matches:
+            label = matches[0]
+            if label not in labels:
+                labels.update({label: 0})
+            labels[label] += 1
+            total += 1
+            if idx not in stcount:
+                stcount.update({idx: 0})
+            stcount[idx] += 1
+            if label not in serocount:
+                serocount.update({label: 0})
+            serocount[label] += 1
+
+    tab.append(labels)
+
+# calculate mutual information
+minfo = 0
+for i, subtree in enumerate(tab):
+    pi = stcount[i] / total  # marginal freq of subtree
+    for serotype, count in subtree.items():
+        pj =  serocount[serotype] / total  # marginal freq of serotype
+        pij = count / total  # cell-specific joint prob
+        if pij == 0:
+            continue
+        minfo += pij * log(pij / (pi*pj))
+
+# normalization
+hu = -1.0 * sum([count/total * log(count/total) for i, count in stcount.items()])
+hv = -1.0 * sum([count/total * log(count/total) for i, count in serocount.items()])
+sys.stderr.write(f"{minfo} {hu} {hv} {2*minfo/(hu+hv)}\n")
