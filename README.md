@@ -1,8 +1,9 @@
 # Genetic taxonomy of influenza A virus subtypes
 
-Scripts and output files associated with a manuscript "Prospects for a sequence-based taxonomy of influenza A virus subtypes".
+Scripts and output files associated with a manuscript "Prospects for a sequence-based taxonomy of influenza A virus subtypes":<br/>
+https://www.biorxiv.org/content/10.1101/2023.07.06.548035v1
 
-Input data files can be obtained from Zenodo under a Creative Commons license:
+Input data files can be obtained from Zenodo under a Creative Commons license:<br/>
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8119571.svg)](https://doi.org/10.5281/zenodo.8119571)
 
 ## Scripts
