@@ -8,20 +8,20 @@ par(mar=c(5,5,2,1), mfrow=c(2,2), cex=1)
 
 plot(grid$minlen, grid$maxlen, pch=21,
      cex=sqrt(abs(grid$nsubtrees-18))/5,
-     bg=ifelse(grid$nsubtrees > 18, 'pink', 'skyblue'),
-     xlab="Minimum divergence", ylab="Maximum patristic distance")
+     bg=ifelse(grid$nsubtrees > 18, 'white', 'black'),
+     xlab="Minimum divergence (v)", ylab="Maximum patristic distance (y)")
 title(main="Number of subtrees", adj=0, font.main=1)
 text(x=-0.02, y=2.2, label="A", cex=2, xpd=NA)
 
 plot(jitter(grid$maxlen), grid$mean.n.types, pch=19, cex=0.5,
      ylab="Mean number per subtree",
-     xlab="Maximum patristic distance")
+     xlab="Maximum patristic distance (y)")
 title(main="Number of different serotype labels", adj=0, font.main=1)
 text(x=-0.35, y=9.1, label="B", cex=2, xpd=NA)
 
 plot(grid$minlen, grid$maxlen, cex=2.5*sqrt(1-grid$nlabels), 
-     pch=22, bg='red3', col=NA,
-     xlab="Minimum divergence", ylab="Maximum patristic distance")
+     pch=22, bg='black', col=NA,
+     xlab="Minimum divergence (v)", ylab="Maximum patristic distance (y)")
 points(grid$minlen[grid$nlabels<1], grid$maxlen[grid$nlabels<1], 
        pch=22, cex=2.5, lwd=0.5, col='grey20')
 title(main="Number of dropped labels", adj=0, font.main=1)
@@ -30,7 +30,7 @@ text(x=-0.02, y=2.2, label="C", cex=2, xpd=NA)
 res <- read.csv("results/HA.mindiv0_08.maxpat1_2.subtypes.csv")
 res <- res[res$serotype!='H192329',]
 #res <- read.csv("results/HA.mindiv0.maxpat1_1.subtypes.csv")
-res <- read.csv("results/HA.mindiv0_08.maxpat1.subtypes.csv")
+#res <- read.csv("results/HA.mindiv0_08.maxpat1.subtypes.csv")
 
 par(mar=c(5,5,2,2))
 plot(NA, xlim=c(0.75,17.25), ylim=c(-0.25, 16.25), xaxt='n', yaxt='n',
@@ -38,10 +38,10 @@ plot(NA, xlim=c(0.75,17.25), ylim=c(-0.25, 16.25), xaxt='n', yaxt='n',
 title(main="Distribution of labels at y=1.2, v=0.08", adj=0, font.main=1)
 text(x=-3.2, y=18., label="D", cex=2, xpd=NA)
 
-#si <- c(2,0,3,4,1,6,7:16,17,5)  # yes this is ugly
+si <- c(2,0,3,4,1,6,7:16,17,5)  # yes this is ugly
 for (i in 0:max(res$subtree)) {  # subtree
-  #rows <- res[res$subtree==si[i+1],]
-  rows <- res[res$subtree==i,]
+  rows <- res[res$subtree==si[i+1],]
+  #rows <- res[res$subtree==i,]
   for (sero in rows$serotype) {  # serotype
     j <- as.integer(gsub("H([0-9]+)", "\\1", sero))
     count <- rows[rows$serotype==sero, 3]
