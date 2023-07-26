@@ -11,6 +11,7 @@ Input data files can be obtained from Zenodo under a Creative Commons license:<b
 * `chainsaw-plot.R` - R script to visualize the number of subtrees produced by the edgewise clustering ("chainsaw") method as a function of the internal branch length cutoff.  
 This script is applied to results obtained for protein sequence phylogenies reconstructed for all eight influenza A virus (IAV) genome segments, with an emphasis on hemagglutinin (HA) and neuraminidase (NA) proteins.
 
+* `coldates.R` - a simple R script that was used to generate Figure S1 (a barplot of the number of IAV sequences deposited to the GISAID database per year).
 
 * `chainsaw.py` - Python script implementing the edgewise clustering method.  Requires Biopython.
 Running the script without any arguments prints a histogram summary of branch lengths to the console.
